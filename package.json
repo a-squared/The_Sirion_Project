@@ -1,0 +1,14 @@
+{
+  "name": "contract-intelligence-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local procurement contract workspace prototype",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js",
+    "test": "node tests/offline-smoke.cjs && node tests/frontend-integration.cjs && node tests/backend-smoke.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
