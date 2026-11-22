@@ -26,11 +26,13 @@
   let saveQueue = Promise.resolve();
   let toastTimer;
 
-  // A curated demo answer is used only while all its source documents remain
-  // exactly as supplied. Added or edited amendments invalidate the answer.
+  // Curated answers are valid only for unchanged bundled sources, including
+  // operational evidence. New or edited documents invalidate those answers.
+  const currentSignature = (contract) => JSON.stringify([
+    contract.documents || [], contract.supportingEvidence || []
+  ]);
   const demoSignatures = new Map(state.contracts.map((contract) => [
-    String(contract.id),
-    JSON.stringify((contract.documents || []).map((document) => [document.id, document.name, document.content]))
+    String(contract.id), currentSignature(contract)
   ]));
   const demoQuestions = [
     {
@@ -64,7 +66,7 @@
     {
       question: 'What service level applies to delivery and installation?',
       contractId: 'delivery',
-      answer: 'The illustrative agreement says at least 98% of eligible installations in each calendar month must be completed within two business days of the agreed appointment date. Customer-requested rescheduling is excluded. A qualifying credit claim has a 30-day deadline; actual performance evidence is not included.',
+      answer: 'The illustrative agreement says at least 98% of eligible installations in each calendar month must be completed within two business days of the agreed appointment date. Customer-requested rescheduling is excluded. A qualifying credit claim has a 30-day deadline from receipt of the service report.',
       sources: [
         {
           documentId: 'delivery-master',
@@ -77,26 +79,115 @@
         {
           documentId: 'delivery-master',
           quote: 'Where the stated service level is missed, the retailer may request a credit equal to 2% of the affected month\'s service fee by submitting a qualifying claim within 30 days.'
-        },
-        {
-          documentId: 'delivery-master',
-          quote: 'No delivery log, service report, or claim record is included.'
         }
       ]
     },
     {
       question: 'What is the billing software price cap?',
       contractId: 'billing-software',
-      answer: 'The illustrative agreement permits a proposed increase of up to 3% of the existing subscription fee at renewal, subject to its notice and other conditions. No proposed increase or invoice has been supplied.',
+      answer: 'The illustrative agreement permits a proposed increase of up to 3% of the existing subscription fee at renewal, subject to its notice and other conditions.',
       sources: [
         {
           documentId: 'billing-master',
           quote: 'At renewal the supplier may propose an increase of up to 3% of the existing subscription fee, subject to the notice and other conditions in this agreement.'
-        },
-        {
-          documentId: 'billing-master',
-          quote: 'No actual usage records, proposed increase, or invoice is included.'
         }
+      ]
+    }
+  ];
+  const revisedDemoQuestions = [
+    {
+      question: 'Does the staffing agency’s latest invoice match the agreed rates?',
+      contractId: 'staffing',
+      answer: 'The November invoice lists 25 standard weekday Zone A shifts at ₹750 each, while the amendment sets ₹650. That suggests a potential ₹2,500 difference before tax (25 × ₹100). Confirm the shift classification and any authorised extras before deciding.',
+      sources: [
+        { documentId: 'staffing-amendment', quote: 'From 1 August 2026, the rate for a standard weekday sales-assistant shift in Zone A changes to ₹650 before tax.' },
+        { documentId: 'staffing-invoice', quote: 'a November 2026 invoice line records 25 standard weekday Zone A shifts at ₹750 each before tax, totalling ₹18,750.' },
+        { documentId: 'staffing-attendance', quote: 'the sample attendance summary lists 25 standard weekday sales-assistant shifts in Zone A during November 2026.' }
+      ]
+    },
+    {
+      question: 'Did the delivery provider miss its service level, and can we claim a credit?',
+      contractId: 'delivery',
+      answer: 'The October report records 950 of 1,000 eligible installations on time (95%), below the 98% requirement. The ₹10 lakh service fee and 2% credit clause suggest a potential ₹20,000 credit. The report was received on 5 November 2026, so the illustrative 30-day deadline is 5 December 2026. Verify the report, exclusions and claim conditions before requesting a credit.',
+      sources: [
+        { documentId: 'delivery-master', quote: 'At least 98% of eligible installations in each calendar month must be completed within two business days of the agreed appointment date.' },
+        { documentId: 'delivery-master', quote: 'Where the stated service level is missed, the retailer may request a credit equal to 2% of the affected month\'s service fee by submitting a qualifying claim within 30 days. The 30-day period runs from receipt of the monthly service report.' },
+        { documentId: 'delivery-report', quote: 'the October 2026 service report, received 5 November 2026, records 950 on-time installations out of 1,000 eligible installations.' },
+        { documentId: 'delivery-invoice', quote: 'the October 2026 service invoice lists an affected monthly service fee of ₹10 lakh before tax.' }
+      ]
+    },
+    {
+      question: 'When is the AC maintenance notice deadline, and what happens if we miss it?',
+      contractId: 'ac-maintenance',
+      answer: 'Written notice is due by 15 January 2027. Without it, the sample agreement renews for another twelve months.',
+      sources: [{ documentId: 'ac-master', quote: 'Unless either party gives written notice by 15 January 2027, the agreement renews for a further twelve months.' }]
+    },
+    {
+      question: 'Are we still paying for AC maintenance at a closed store?',
+      contractId: 'ac-maintenance',
+      answer: 'The store register records Andheri East as closed on 31 August 2026. The variation stops its ₹35,000 monthly fee from 1 September, but the November invoice includes that amount. This suggests a potential ₹35,000 variance before tax; verify the invoice and variation.',
+      sources: [
+        { documentId: 'ac-site-variation', quote: 'The parties\' illustrative signed variation removes the Andheri East store from the maintenance schedule effective 1 September 2026. The ₹35,000 monthly site fee before tax ceases from that date, with no minimum commitment for that store.' },
+        { documentId: 'ac-store-closure', quote: 'the store register records Andheri East as closed on 31 August 2026.' },
+        { documentId: 'ac-invoice', quote: 'the November 2026 maintenance invoice includes ₹35,000 before tax for the Andheri East store.' }
+      ]
+    },
+    {
+      question: 'How many billing software licences are unused, and how many can we reduce?',
+      contractId: 'billing-software',
+      answer: 'The sample invoice lists 400 paid licences; 260 distinct users signed in during the recorded August–October period, leaving 140 without a recorded sign-in. The contract minimum is 300, so at most 100 licences could be reduced at renewal with notice by 31 May 2027. Check seasonal and future needs before deciding.',
+      sources: [
+        { documentId: 'billing-licences', quote: 'the current subscription invoice records 400 paid licences.' },
+        { documentId: 'billing-usage', quote: 'from 1 August to 31 October 2026, 260 distinct named users signed in at least once out of 400 paid licences.' },
+        { documentId: 'billing-master', quote: 'The subscription covers up to 400 named users, subject to a minimum commitment of 300 licences. Unused licences do not automatically reduce the commitment. At renewal, the retailer may reduce the number of licences to no fewer than 300 by giving written notice by 31 May 2027.' }
+      ]
+    },
+    {
+      question: 'Is the proposed billing software price increase above the agreed cap?',
+      contractId: 'billing-software',
+      answer: 'The sample proposal asks for 7%, while the agreement permits up to 3% at renewal: a difference of 4 percentage points. Review the cap’s conditions and the proposal before challenging the supplier; this is not a recorded saving.',
+      sources: [
+        { documentId: 'billing-master', quote: 'At renewal the supplier may propose an increase of up to 3% of the existing subscription fee, subject to the notice and other conditions in this agreement.' },
+        { documentId: 'billing-proposal', quote: 'the supplier\'s 1 November 2026 proposal seeks a 7% increase over the existing subscription fee at renewal.' }
+      ]
+    },
+    {
+      question: 'Was the marketing retainer updated after the agreed scope and fee change?',
+      contractId: 'marketing',
+      answer: 'The variation changes the monthly retainer from ₹50 lakh to ₹35 lakh before tax from 1 October 2026. The November invoice still lists ₹50 lakh, suggesting a potential ₹15 lakh difference. Confirm the variation and invoice with the supplier.',
+      sources: [
+        { documentId: 'marketing-variation', quote: 'The parties\' illustrative signed variation reduces the social-media scope and changes the monthly retainer from ₹50 lakh to ₹35 lakh before tax, effective 1 October 2026.' },
+        { documentId: 'marketing-invoice', quote: 'the November 2026 invoice lists a monthly retainer of ₹50 lakh before tax.' }
+      ]
+    },
+    {
+      question: 'Are we still paying for security guards at closed stores?',
+      contractId: 'security',
+      answer: 'The Andheri East store closed on 31 August 2026. Its security fee ceased under the variation from 1 October, yet the November invoice includes ₹60,000 before tax. This is a potential variance; confirm the records before disputing it.',
+      sources: [
+        { documentId: 'security-closure', quote: 'the store register records Andheri East as closed on 31 August 2026.' },
+        { documentId: 'security-site-variation', quote: 'The parties\' illustrative signed variation removes the Andheri East store from the security schedule effective 1 October 2026. Its ₹60,000 monthly guard fee before tax ceases from that date, with no further site commitment.' },
+        { documentId: 'security-invoice', quote: 'the November 2026 security invoice includes ₹60,000 before tax for the Andheri East store.' }
+      ]
+    },
+    {
+      question: 'Are we paying for internet links at closed stores, and what are the disconnection costs?',
+      contractId: 'internet',
+      answer: 'The November invoice includes ₹12,000 before tax for the Andheri East circuit after the store closed. Its order has a minimum term through 31 January 2027, a ₹12,000 early-disconnection charge, and requires at least 30 days’ written notice. Closure alone does not establish an incorrect charge; compare the options and confirm the order.',
+      sources: [
+        { documentId: 'internet-closure', quote: 'the store register records Andheri East as closed on 31 August 2026.' },
+        { documentId: 'internet-invoice', quote: 'the November 2026 connectivity invoice includes ₹12,000 before tax for the Andheri East circuit.' },
+        { documentId: 'internet-order', quote: 'The Andheri East store circuit costs ₹12,000 per month before tax and has a minimum term ending 31 January 2027. Early disconnection before the minimum term ends incurs a ₹12,000 charge. Written notice is required at least 30 days before disconnection.' }
+      ]
+    },
+    {
+      question: 'Has the SAP consulting milestone been accepted, and is the invoice due?',
+      contractId: 'sap',
+      answer: 'The 15 November review rejected milestone 2 pending corrections, and the sample record contains no later written acceptance. The work order requires written acceptance for the ₹25 lakh fee and specifies no advance; the 18 November invoice therefore appears premature on the available records. Check for a later acceptance before acting.',
+      sources: [
+        { documentId: 'sap-work-order', quote: 'The ₹25 lakh fee before tax is payable after written acceptance of the deliverable by the retailer. No advance payment is specified for this milestone.' },
+        { documentId: 'sap-acceptance', quote: 'the retailer\'s 15 November 2026 review rejects milestone 2 pending corrections. The record does not contain a later written acceptance.' },
+        { documentId: 'sap-invoice', quote: 'the supplier\'s 18 November 2026 invoice requests ₹25 lakh before tax for milestone 2.' }
       ]
     }
   ];
@@ -104,15 +195,19 @@
   const getContract = (id) => state.contracts.find((contract) => String(contract.id) === String(id));
   const getDocument = (contractId, documentId) => {
     const contract = getContract(contractId);
-    return contract && (contract.documents || []).find((document) => String(document.id) === String(documentId));
+    return contract && [...(contract.documents || []), ...(contract.supportingEvidence || [])]
+      .find((document) => String(document.id) === String(documentId));
   };
-  const currentSignature = (contract) => JSON.stringify((contract.documents || []).map((document) => [document.id, document.name, document.content]));
   const sourceId = (contract, document) => `${contract.id}--${document.id}`;
+  const sourceTitle = (contract, document) => {
+    const support = (contract.supportingEvidence || []).some((item) => String(item.id) === String(document.id));
+    return `${contract.supplier} · ${document.name} · ${support ? 'Supporting evidence' : 'Agreement document'}`;
+  };
   const allSources = (scopeId) => state.contracts
     .filter((contract) => !scopeId || String(contract.id) === String(scopeId))
-    .flatMap((contract) => (contract.documents || []).map((document) => ({
+    .flatMap((contract) => [...(contract.documents || []), ...(contract.supportingEvidence || [])].map((document) => ({
       id: sourceId(contract, document),
-      title: `${contract.supplier} · ${document.name}`,
+      title: sourceTitle(contract, document),
       content: String(document.content || ''),
       contractId: String(contract.id),
       documentId: String(document.id)
@@ -150,7 +245,7 @@
   }
 
   function setView(view) {
-    if (!['overview', 'library', 'board', 'story'].includes(view)) view = 'overview';
+    if (!['overview', 'library', 'board', 'story', 'architecture'].includes(view)) view = 'overview';
     activeView = view;
     document.querySelectorAll('[data-view]').forEach((button) => {
       const selected = button.dataset.view === view;
@@ -158,13 +253,18 @@
       if (selected) button.setAttribute('aria-current', 'page');
       else button.removeAttribute('aria-current');
     });
-    const titles = { overview: 'Overview', library: 'Contracts Library', board: 'Team Board', story: 'Story' };
+    const titles = { overview: 'Home', library: 'Contracts Library', board: 'Team Board', story: 'Rationale & Insights', architecture: 'Architecture' };
     document.getElementById('page-title').textContent = titles[view];
     popoverRoot.innerHTML = '';
     if (view === 'overview') window.renderOverview(root, state, actions);
     else if (view === 'library') window.renderLibrary(root, state, actions);
     else if (view === 'board') window.renderBoard(root, state, actions);
-    else window.renderStory(root);
+    else if (view === 'story') {
+      if (typeof window.renderRationaleSection === 'function') window.renderRationaleSection(root, state, actions);
+      else if (typeof window.renderStory === 'function') window.renderStory(root);
+    } else if (typeof window.renderArchitectureSection === 'function') {
+      window.renderArchitectureSection(root, state, actions);
+    }
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
@@ -191,8 +291,134 @@
       </button>`).join('')}</div>`;
   }
 
+  function evidenceFrom(contract, document, quote) {
+    return {
+      contractId: String(contract.id),
+      documentId: String(document.id),
+      title: sourceTitle(contract, document),
+      quote
+    };
+  }
+
+  function matchingNoticeSource(contract) {
+    if (!contract.noticeVerified || !/^\d{4}-\d{2}-\d{2}$/.test(String(contract.noticeDate || ''))) return null;
+    const longDate = new Date(`${contract.noticeDate}T12:00:00`).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+    for (const document of contract.documents || []) {
+      const paragraph = String(document.content || '').split(/\n{2,}/)
+        .find((part) => part.includes(longDate) && /notice/i.test(part));
+      if (paragraph) return evidenceFrom(contract, document, paragraph.trim());
+    }
+    return null;
+  }
+
+  function portfolioAnswer(question, scopeId) {
+    if (scopeId) return null;
+    const query = normaliseQuestion(question);
+    if (query === normaliseQuestion('Which contracts have notice deadlines in the next 90 days?')) {
+      const matches = [];
+      let unconfirmed = 0;
+      for (const contract of state.contracts) {
+        if (!contract.noticeVerified || !contract.noticeDate) { unconfirmed += 1; continue; }
+        const days = dayDiff(contract.noticeDate);
+        if (days === null) { unconfirmed += 1; continue; }
+        if (days < 0 || days > 90) continue;
+        const evidence = matchingNoticeSource(contract);
+        if (!evidence) { unconfirmed += 1; continue; }
+        matches.push({ contract, days, evidence });
+      }
+      matches.sort((a, b) => a.days - b.days);
+      const lines = matches.map(({ contract, days }) => `${contract.title}: ${formatDate(contract.noticeDate)} (${days === 0 ? 'today' : `in ${days} days`}); owner ${contract.owner || 'unassigned'}.`);
+      return {
+        label: 'Portfolio summary · recorded data',
+        answer: `${lines.length ? lines.join('\n') : 'No source-matched, verified notice dates fall in the next 90 days.'}\nBased on the dates currently recorded. ${unconfirmed} contract${unconfirmed === 1 ? ' has' : 's have'} a missing, unverified or unmatched date; check those separately. Overdue dates are not included.`,
+        evidence: matches.map((item) => item.evidence)
+      };
+    }
+    if (query === normaliseQuestion('Which supplier compliance documents expire in the next 30 days?')) {
+      const matches = [];
+      for (const contract of state.contracts) {
+        for (const item of contract.supportingEvidence || []) {
+          if (!item.expiryDate || !/licen[sc]e|insurance|compliance|certificate/i.test(`${item.name} ${item.content}`)) continue;
+          const days = dayDiff(item.expiryDate);
+          if (days === null || days < 0 || days > 30) continue;
+          const dateText = new Date(`${item.expiryDate}T12:00:00`).toLocaleDateString('en-GB', {
+            day: 'numeric', month: 'long', year: 'numeric'
+          });
+          if (!String(item.content || '').includes(dateText)) continue;
+          matches.push({ contract, item, days, evidence: evidenceFrom(contract, item, String(item.content)) });
+        }
+      }
+      matches.sort((a, b) => a.days - b.days);
+      return {
+        label: 'Portfolio summary · recorded data',
+        answer: `${matches.length ? matches.map(({ contract, item, days }) => `${contract.supplier}: ${item.name}, ${formatDate(item.expiryDate)} (${days === 0 ? 'today' : `in ${days} days`}); owner ${contract.owner || 'unassigned'}.`).join('\n') : 'No source-matched compliance document with a recorded expiry falls in the next 30 days.'}\nOnly documents with an expiry recorded in this workspace are included; missing or expired documents require separate review.`,
+        evidence: matches.map((item) => item.evidence)
+      };
+    }
+    if (query === normaliseQuestion('Which contracts have potential billing issues?')) {
+      const examples = [
+        ['ac-maintenance', 'Are we still paying for AC maintenance at a closed store?', 'AC maintenance: ₹35,000 after the agreed site removal.'],
+        ['staffing', 'Does the staffing agency’s latest invoice match the agreed rates?', 'Staffing: possible ₹2,500 rate difference.'],
+        ['marketing', 'Was the marketing retainer updated after the agreed scope and fee change?', 'Marketing: possible ₹15 lakh retainer difference.'],
+        ['security', 'Are we still paying for security guards at closed stores?', 'Security: ₹60,000 after the agreed site removal.'],
+        ['sap', 'Has the SAP consulting milestone been accepted, and is the invoice due?', 'SAP consulting: ₹25 lakh invoiced before recorded acceptance.'],
+        ['billing-software', 'Is the proposed billing software price increase above the agreed cap?', 'Billing software: a proposed 7% increase against a 3% cap.']
+      ];
+      const matches = [];
+      for (const [id, prompt, label] of examples) {
+        const contract = getContract(id);
+        if (!contract || contract.status === 'Done') continue;
+        const result = sampleAnswer(prompt, id);
+        if (result) matches.push({ contract, label, evidence: result.evidence });
+      }
+      return {
+        answer: `${matches.length ? matches.map(({ contract, label }) => `${label} Board status: ${contract.status || 'unknown'}; owner: ${contract.owner || 'unassigned'}.`).join('\n') : 'No unchanged bundled examples are currently shown as open billing issues.'}\nThese are potential findings from the synthetic documents, not verified savings. Changed, missing and other records require separate review; internet lock-in charges are not automatically a billing error.`,
+        evidence: matches.flatMap((item) => item.evidence)
+      };
+    }
+    if (query === normaliseQuestion('What needs action soon, and who owns it?')) {
+      const due = [];
+      const append = (contract, date, text, evidence) => {
+        const days = dayDiff(date);
+        if (days === null || days > 30 || contract.status === 'Done') return;
+        due.push({ contract, date, text, evidence, days });
+      };
+      for (const contract of state.contracts) {
+        const evidence = matchingNoticeSource(contract);
+        if (evidence) append(contract, contract.noticeDate, 'Notice deadline', [evidence]);
+      }
+      const delivery = getContract('delivery');
+      if (delivery && currentSignature(delivery) === demoSignatures.get('delivery')) {
+        const report = getDocument('delivery', 'delivery-report');
+        const terms = getDocument('delivery', 'delivery-master');
+        if (report && terms && report.dueDate && String(terms.content).includes('The 30-day period runs from receipt of the monthly service report.')) {
+          append(delivery, report.dueDate, 'Potential service credit claim', [
+            evidenceFrom(delivery, report, String(report.content)),
+            evidenceFrom(delivery, terms, 'The 30-day period runs from receipt of the monthly service report.')
+          ]);
+        }
+      }
+      const security = getContract('security');
+      if (security && currentSignature(security) === demoSignatures.get('security')) {
+        const licence = getDocument('security', 'security-licence');
+        if (licence && licence.expiryDate) append(security, licence.expiryDate, 'Licence expiry', [evidenceFrom(security, licence, String(licence.content))]);
+      }
+      due.sort((a, b) => a.days - b.days);
+      return {
+        label: 'Portfolio summary · recorded data',
+        answer: `${due.length ? due.map(({ contract, date, text, days }) => `${text}: ${contract.title}, ${formatDate(date)} (${days < 0 ? `${Math.abs(days)} days overdue` : days === 0 ? 'today' : `in ${days} days`}); owner ${contract.owner || 'unassigned'}; board status ${contract.status || 'unknown'}.`).join('\n') : 'No source-matched sample notice, claim or licence dates are due in the next 30 days or overdue.'}\nThis checks recorded notice dates and the sample service-credit and licence dates. Other undated or unverified work may still need review.`,
+        evidence: due.flatMap((item) => item.evidence)
+      };
+    }
+    return null;
+  }
+
   function sampleAnswer(question, scopeId) {
-    const example = demoQuestions.find((item) => normaliseQuestion(item.question) === normaliseQuestion(question));
+    const portfolio = portfolioAnswer(question, scopeId);
+    if (portfolio) return portfolio;
+    const example = [...demoQuestions, ...revisedDemoQuestions].find((item) => normaliseQuestion(item.question) === normaliseQuestion(question));
     if (!example || (scopeId && scopeId !== example.contractId)) return null;
     const contract = getContract(example.contractId);
     if (!contract || currentSignature(contract) !== demoSignatures.get(example.contractId)) return null;
@@ -200,12 +426,7 @@
     for (const item of example.sources) {
       const document = getDocument(example.contractId, item.documentId);
       if (!document || !String(document.content || '').includes(item.quote)) return null;
-      evidence.push({
-        contractId: example.contractId,
-        documentId: item.documentId,
-        title: `${contract.supplier} · ${document.name}`,
-        quote: item.quote
-      });
+      evidence.push(evidenceFrom(contract, document, item.quote));
     }
     return { answer: example.answer, evidence };
   }
@@ -232,7 +453,7 @@
     const sources = allSources(scopeId);
     const example = sampleAnswer(query, scopeId);
     if (example) {
-      output.innerHTML = `<div class="app-result"><div class="app-result-top"><span class="badge badge-violet">Example answer · synthetic data</span></div><p>${esc(example.answer)}</p>${evidenceHtml(example.evidence)}</div>`;
+      output.innerHTML = `<div class="app-result"><div class="app-result-top"><span class="badge badge-violet">${esc(example.label || 'Example answer · synthetic data')}</span></div><p>${esc(example.answer).replace(/\n/g, '<br>')}</p>${evidenceHtml(example.evidence)}</div>`;
       showSources(output, example.evidence);
       return;
     }
@@ -284,7 +505,7 @@
           <section><div class="app-section-head"><h3>Agreement &amp; related documents</h3><button class="button button-ghost" type="button" id="app-add-amendment">+ Add document</button></div>
             ${documents.length ? `<div class="app-documents">${documents.map((document) => `<details class="app-document" data-document-id="${esc(document.id)}"${String(document.id) === String(selectedDocument || '') ? ' open' : ''}><summary><span class="app-doc-icon">▤</span><span><strong>${esc(document.name)}</strong><small>${esc(document.kind || 'Linked document')}</small></span><span aria-hidden="true">⌄</span></summary><div class="app-document-content">${document.url && /^\/api\/file\/[a-zA-Z0-9-]+$/.test(document.url) ? `<a class="app-source-link" href="${esc(document.url)}" target="_blank" rel="noopener">Open original document ↗</a>` : ''}<pre>${esc(document.content || 'No extracted text is available.')}</pre></div></details>`).join('')}</div>` : '<p class="app-empty">No source documents are linked yet.</p>'}
           </section>
-          ${support.length ? `<section><h3>Supporting evidence</h3><p class="muted">These illustrative records are separate from the agreement.</p>${support.map((item) => `<details class="app-document"><summary><span class="app-doc-icon">▤</span><span><strong>${esc(item.name)}</strong><small>${esc(item.kind || 'Supporting evidence')}</small></span><span aria-hidden="true">⌄</span></summary><div class="app-document-content"><pre>${esc(item.content)}</pre></div></details>`).join('')}</section>` : ''}
+          ${support.length ? `<section><h3>Supporting evidence</h3><p class="muted">These records are separate from the agreement.</p>${support.map((item) => `<details class="app-document" data-document-id="${esc(item.id)}"${String(item.id) === String(selectedDocument || '') ? ' open' : ''}><summary><span class="app-doc-icon">▤</span><span><strong>${esc(item.name)}</strong><small>${esc(item.kind || 'Supporting evidence')}</small></span><span aria-hidden="true">⌄</span></summary><div class="app-document-content"><pre>${esc(item.content)}</pre></div></details>`).join('')}</section>` : ''}
           <div class="app-drawer-actions"><button type="button" class="button button-primary" id="app-ask-contract">Ask about this contract</button><button type="button" class="button button-outline" id="app-board-contract">Open Team Board</button></div>
         </div>
       </section>
@@ -444,12 +665,14 @@
 
   function openAiDrawer(scopeId = null) {
     const contract = scopeId ? getContract(scopeId) : null;
+    const suggestions = (window.ASKSIRION_QUESTIONS || []).filter((item) => !scopeId || item.contractId === scopeId);
     drawerRoot.innerHTML = `<div class="drawer-overlay" data-app-overlay>
       <section class="drawer" role="dialog" aria-modal="true" aria-labelledby="app-ai-title" tabindex="-1">
-        <header class="drawer-header"><div><div class="eyebrow">CONTRACT INTELLIGENCE</div><h2 id="app-ai-title" class="app-drawer-title">Ask AI</h2><p class="muted app-drawer-subtitle">${contract ? `Searching ${esc(contract.supplier)}'s linked documents.` : 'Searching the available contract documents.'}</p></div><button class="icon-button app-close" type="button" data-close-drawer aria-label="Close">×</button></header>
+        <header class="drawer-header"><div><div class="eyebrow">CONTRACT INTELLIGENCE</div><h2 id="app-ai-title" class="app-drawer-title">AskSirion</h2><p class="muted app-drawer-subtitle">${contract ? `Searching ${esc(contract.supplier)}'s linked documents.` : 'Searching the available contract documents.'}</p></div><button class="icon-button app-close" type="button" data-close-drawer aria-label="Close">×</button></header>
         <div class="drawer-body">
-          <p class="app-disclosure">${state.aiConfigured ? 'Questions and selected contract text are sent to the configured model provider. Review the returned sources.' : 'AI is not connected. Curated sample questions and clearly labeled document search are available.'}</p>
+          <p class="app-disclosure">${state.aiConfigured ? 'Questions and selected agreement and supporting-record text are sent to the configured model provider. Review the returned sources.' : 'AI is not connected. Curated sample questions and clearly labeled document search are available.'}</p>
           <form id="app-ai-form" class="app-form"><label class="field"><span>Your question</span><textarea class="input" name="question" placeholder="What would you like to know?" required></textarea></label><button class="button button-primary" type="submit">Ask about contracts</button></form>
+          ${suggestions.length ? `<details class="app-sample-questions"><summary>See sample questions</summary><div>${suggestions.map((item, index) => `<button class="button button-ghost" type="button" data-app-sample="${index}">${esc(item.question)}</button>`).join('')}</div></details>` : ''}
           <div id="app-ai-output" aria-live="polite"></div>
         </div>
       </section>
@@ -462,6 +685,14 @@
       event.preventDefault();
       const data = new FormData(form);
       ask(data.get('question'), drawerRoot.querySelector('#app-ai-output'), scopeId);
+    });
+    drawerRoot.querySelectorAll('[data-app-sample]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const item = suggestions[Number(button.dataset.appSample)];
+        if (!item) return;
+        form.querySelector('[name=question]').value = item.question;
+        ask(item.question, drawerRoot.querySelector('#app-ai-output'), scopeId);
+      });
     });
     drawerRoot.querySelector('.drawer').focus();
   }
@@ -591,6 +822,31 @@
     setRole: (role) => { state.role = role; setView(activeView); }
   };
 
+  function upgradeLegacyDemoContracts(contracts) {
+    const originals = window.LEGACY_DEMO_SOURCES || {};
+    const updated = new Map((window.DEMO_CONTRACTS || []).map((contract) => [String(contract.id), contract]));
+    return contracts.map((contract) => {
+      const original = originals[String(contract.id)];
+      const fresh = updated.get(String(contract.id));
+      if (!original || !fresh) return contract;
+      const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+      if (!same(contract.documents || [], original.documents || []) ||
+          !same(contract.supportingEvidence || [], original.supportingEvidence || [])) return contract;
+      const result = {
+        ...contract,
+        documents: clone(fresh.documents || []),
+        supportingEvidence: clone(fresh.supportingEvidence || [])
+      };
+      for (const field of ['terms', 'flags', 'notes']) {
+        const defaultValue = field === 'notes' ? '' : [];
+        if (same(contract[field] || defaultValue, original[field] || defaultValue)) {
+          result[field] = clone(fresh[field] || defaultValue);
+        }
+      }
+      return result;
+    });
+  }
+
   async function initialise() {
     try {
       const [statusResult, stateResult] = await Promise.all([
@@ -615,6 +871,7 @@
         if (Array.isArray(saved) && saved.length) state.contracts = saved;
       } catch (_) { /* Use supplied samples. */ }
     }
+    state.contracts = upgradeLegacyDemoContracts(state.contracts);
     applyAutomaticTransitions();
     persist();
     document.querySelectorAll('[data-view]').forEach((button) => button.addEventListener('click', () => setView(button.dataset.view)));

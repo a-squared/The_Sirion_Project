@@ -3,6 +3,23 @@
   'use strict';
 
   const esc = (value) => String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+  const sampleQuestions = [
+    { question: 'Which contracts have notice deadlines in the next 90 days?', group: 'Portfolio', contractId: null, featured: true },
+    { question: 'Does the staffing agency’s latest invoice match the agreed rates?', group: 'Staffing', contractId: 'staffing', featured: true },
+    { question: 'Did the delivery provider miss its service level, and can we claim a credit?', group: 'Delivery and installation', contractId: 'delivery', featured: true },
+    { question: 'Which supplier compliance documents expire in the next 30 days?', group: 'Portfolio', contractId: null, featured: true },
+    { question: 'When is the AC maintenance notice deadline, and what happens if we miss it?', group: 'AC maintenance', contractId: 'ac-maintenance', featured: false },
+    { question: 'Are we still paying for AC maintenance at a closed store?', group: 'AC maintenance', contractId: 'ac-maintenance', featured: false },
+    { question: 'How many billing software licences are unused, and how many can we reduce?', group: 'Billing software', contractId: 'billing-software', featured: false },
+    { question: 'Is the proposed billing software price increase above the agreed cap?', group: 'Billing software', contractId: 'billing-software', featured: false },
+    { question: 'Was the marketing retainer updated after the agreed scope and fee change?', group: 'Marketing', contractId: 'marketing', featured: false },
+    { question: 'Are we still paying for security guards at closed stores?', group: 'Security', contractId: 'security', featured: false },
+    { question: 'Are we paying for internet links at closed stores, and what are the disconnection costs?', group: 'Internet links', contractId: 'internet', featured: false },
+    { question: 'Has the SAP consulting milestone been accepted, and is the invoice due?', group: 'SAP consulting', contractId: 'sap', featured: false },
+    { question: 'Which contracts have potential billing issues?', group: 'Portfolio', contractId: null, featured: false },
+    { question: 'What needs action soon, and who owns it?', group: 'Portfolio', contractId: null, featured: false },
+  ];
+  window.ASKSIRION_QUESTIONS = sampleQuestions;
   const dateValue = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? String(value) : '';
   const parseDate = (value) => {
     const iso = dateValue(value);
@@ -64,11 +81,15 @@
       const firstFlag = Array.isArray(contract.flags) && contract.flags.length ? flagName(contract.flags[0]) : (contract.status || 'Review contract');
       return `<button type="button" class="v-attention-row" data-v-open-contract="${esc(contract.id)}"><span class="v-attention-icon" aria-hidden="true">↗</span><span class="v-attention-copy"><strong>${esc(contract.title || 'Untitled contract')}</strong><small>${esc(contract.supplier || 'Unknown supplier')}</small></span><span class="v-attention-status">${esc(firstFlag)}</span><span class="v-attention-arrow" aria-hidden="true">→</span></button>`;
     }).join('');
+    const questionButton = (item) => `<button type="button" data-v-question="${esc(item.question)}">${esc(item.question)}</button>`;
+    const featuredMarkup = sampleQuestions.filter((item) => item.featured).map(questionButton).join('');
+    const questionGroups = Array.from(new Set(sampleQuestions.map((item) => item.group)));
+    const allQuestionsMarkup = questionGroups.map((group) => `<div class="v-sample-group"><span>${esc(group)}</span>${sampleQuestions.filter((item) => item.group === group).map(questionButton).join('')}</div>`).join('');
     root.innerHTML = `<div class="v-page v-overview">
       <section class="v-intro"><div><div class="v-eyebrow"><span class="v-eyebrow-dot"></span> THE PROCUREMENT WORKSPACE</div><h2>Clarity, across every contract<span>.</span></h2><p>A clearer view of your agreements, obligations and next decisions.</p></div><span class="v-demo-pill"><span></span> ILLUSTRATIVE PROTOTYPE</span></section>
       <div class="v-demo-disclosure"><span class="v-demo-disclosure-icon" aria-hidden="true">i</span><span>Example contracts, dates and flags are synthetic. They are not signed agreements or verified business findings.</span></div>
       <div class="v-overview-top">
-        <section class="v-ai-card" aria-labelledby="v-ai-title"><div class="v-ai-orb v-ai-orb--one"></div><div class="v-ai-orb v-ai-orb--two"></div><div class="v-ai-content"><div class="v-ai-heading"><div class="v-sparkle" aria-hidden="true">✦</div><div><span class="v-mini-label">YOUR CONTRACT ASSISTANT</span><h3 id="v-ai-title">What would you like to know?</h3></div><span class="v-ai-status ${state.aiConfigured === true ? 'v-ai-status--ready' : ''}"><span></span>${state.aiConfigured === true ? 'Model connected' : 'Demo mode · model not connected'}</span></div><p>Ask across your contracts and find the terms behind the answer.</p><form id="v-ai-form" class="v-ai-form"><label class="v-visually-hidden" for="v-ai-question">Ask a question about your contracts</label><input id="v-ai-question" name="question" autocomplete="off" placeholder="Ask a question about your contracts…" /><button type="submit" aria-label="Ask AI">Ask <span aria-hidden="true">↗</span></button></form><div class="v-suggestion-line"><span>EXAMPLE QUESTIONS</span><button type="button" data-v-question="When is the AC maintenance notice deadline?">When is the AC maintenance notice deadline?</button><button type="button" data-v-question="What is the staffing shift rate?">What is the staffing shift rate?</button><button type="button" data-v-question="What service level applies to delivery and installation?">What service level applies to delivery and installation?</button><button type="button" data-v-question="What is the billing software price cap?">What is the billing software price cap?</button></div><div id="v-ai-output" class="v-ai-output" aria-live="polite"></div><p class="v-ai-caption">${state.aiConfigured === true ? 'Answers should be checked against the cited source.' : 'Example questions use labelled demo answers. Connect an AI model for generated answers.'}</p></div></section>
+        <section class="v-ai-card" aria-labelledby="v-ai-title"><div class="v-ai-orb v-ai-orb--one"></div><div class="v-ai-orb v-ai-orb--two"></div><div class="v-ai-content"><div class="v-ai-heading"><div class="v-sparkle" aria-hidden="true">✦</div><div><span class="v-mini-label v-mini-label--assistant">AskSirion</span><h3 id="v-ai-title">What would you like to know?</h3></div><span class="v-ai-status ${state.aiConfigured === true ? 'v-ai-status--ready' : ''}"><span></span>${state.aiConfigured === true ? 'Model connected' : 'Demo mode · model not connected'}</span></div><p>Ask across your contracts and find the terms behind the answer.</p><form id="v-ai-form" class="v-ai-form"><label class="v-visually-hidden" for="v-ai-question">Ask a question about your contracts</label><input id="v-ai-question" name="question" autocomplete="off" placeholder="Ask a question about your contracts…" /><button type="submit" aria-label="AskSirion">Ask <span aria-hidden="true">↗</span></button></form><div class="v-suggestion-line"><span>EXAMPLE QUESTIONS</span>${featuredMarkup}</div><details class="v-sample-list"><summary>See all sample questions <span>${sampleQuestions.length}</span></summary><div class="v-sample-groups">${allQuestionsMarkup}</div></details><div id="v-ai-output" class="v-ai-output" aria-live="polite"></div><p class="v-ai-caption">${state.aiConfigured === true ? 'Answers should be checked against the cited source.' : 'Example questions use labelled demo answers. Connect an AI model for generated answers.'}</p></div></section>
         <section class="v-reminder-card" aria-labelledby="v-reminders-title"><div class="v-panel-header"><div><span class="v-mini-label">STAY AHEAD</span><h3 id="v-reminders-title">Reminders <span class="v-heading-icon" aria-hidden="true">↗</span></h3></div><span class="v-outline-icon" aria-hidden="true">◷</span></div><p class="v-reminder-intro">Notice deadlines in your loaded contracts.</p><div class="v-reminders-list">${reminderMarkup || '<div class="v-empty-message">No verified notice dates are available yet.</div>'}</div><div class="v-reminder-footer"><span>${dateGaps ? `${dateGaps} ${dateGaps === 1 ? 'date needs' : 'dates need'} review` : 'Dates shown are verified'}</span><button type="button" class="v-text-link" data-v-open-reminders>View all <span aria-hidden="true">→</span></button></div></section>
       </div>
       <div class="v-section-heading"><div><span class="v-mini-label">YOUR PORTFOLIO</span><h3>At a glance</h3></div><button type="button" class="v-text-link" data-v-navigate-library>View contracts <span aria-hidden="true">→</span></button></div>
@@ -90,7 +111,12 @@
       event.preventDefault();
       runAsk(question.value.trim());
     });
-    root.querySelectorAll('[data-v-question]').forEach((button) => button.addEventListener('click', () => { question.value = button.dataset.vQuestion || ''; runAsk(question.value); }));
+    root.querySelectorAll('[data-v-question]').forEach((button) => button.addEventListener('click', () => {
+      question.value = button.dataset.vQuestion || '';
+      const list = button.closest('details');
+      if (list) list.open = false;
+      runAsk(question.value);
+    }));
     root.querySelectorAll('[data-v-navigate-library]').forEach((button) => button.addEventListener('click', () => actions.navigate('library')));
     root.querySelectorAll('[data-v-navigate-board]').forEach((button) => button.addEventListener('click', () => actions.navigate('board')));
     root.querySelectorAll('[data-v-open-reminders]').forEach((button) => button.addEventListener('click', () => actions.openReminders()));

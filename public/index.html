@@ -11,31 +11,34 @@
   <link rel="stylesheet" href="views.css">
   <link rel="stylesheet" href="board.css">
   <link rel="stylesheet" href="story.css">
+  <link rel="stylesheet" href="architecture.css">
   <link rel="stylesheet" href="app.css">
+  <script src="legacy-demo-sources.js" defer></script>
   <script src="fixtures.js" defer></script>
   <script src="board.js" defer></script>
   <script src="story.js" defer></script>
+  <script src="architecture.js" defer></script>
   <script src="views.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" aria-label="Main navigation">
-      <a class="brand" href="#overview" aria-label="Contract Desk overview">
+      <a class="brand" href="#overview" aria-label="Contract Desk home">
         <span class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 32 32" fill="none">
             <path d="M4 11.1 16 4l12 7.1v9.8L16 28 4 20.9v-9.8Z" stroke="currentColor" stroke-width="1.4"/>
             <path d="M4.2 11.3 16 18.2l11.8-6.9M16 18.2V28M10 7.6l12 7.1" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
           </svg>
         </span>
-        <span class="brand-copy"><strong>contract desk</strong><span>INTELLIGENCE WORKSPACE</span></span>
+        <span class="brand-copy"><strong>Contract Desk</strong><span>INTELLIGENCE WORKSPACE</span></span>
       </a>
 
       <div class="sidebar-section-label">WORKSPACE</div>
       <nav class="primary-nav" aria-label="Workspace">
         <button class="nav-link is-active" type="button" data-view="overview" aria-current="page">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3.75 11.2 12 4l8.25 7.2v8.05a.75.75 0 0 1-.75.75h-5v-5.5h-5v5.5h-5a.75.75 0 0 1-.75-.75V11.2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-          <span>Overview</span>
+          <span>Home</span>
         </button>
         <button class="nav-link" type="button" data-view="library">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.25 4.75h10.5a2 2 0 0 1 2 2v12.5H7.25a2 2 0 0 1-2-2V4.75Zm0 12.5a2 2 0 0 1 2-2h10.5M9 8.25h5.75M9 11.25h5.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M17.75 7.5h1.5v12.75H7.5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
@@ -47,15 +50,19 @@
         </button>
         <button class="nav-link" type="button" data-view="story">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5.5 4.75h9l4 4v10.5h-13V4.75Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14.5 4.75v4h4M8.75 12h6.5M8.75 15h6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span>Story</span>
+          <span>Rationale &amp; Insights</span>
+        </button>
+        <button class="nav-link" type="button" data-view="architecture">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8.5" y="3.5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="3.5" y="15.5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="13.5" y="15.5" width="7" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M12 8.5v3.5M7 15.5V12h10v3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Architecture</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
         <span class="sidebar-footer-mark" aria-hidden="true"></span>
         <div>
-          <strong>Made for procurement</strong>
-          <span>Prototype workspace</span>
+          <strong>Made for Procurement</strong>
+          <span>Tyran</span>
         </div>
       </div>
     </aside>
@@ -64,12 +71,12 @@
       <header class="topbar">
         <div class="topbar-context">
           <span class="topbar-eyebrow">CONTRACT WORKSPACE <span aria-hidden="true">/</span></span>
-          <h1 id="page-title">Overview</h1>
+          <h1 id="page-title">Home</h1>
         </div>
         <div class="topbar-actions">
           <button class="button button-ghost top-ai" type="button" id="global-ai-button">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 1.65 5.35L19 10l-5.35 1.65L12 17l-1.65-5.35L5 10l5.35-1.65L12 3ZM18.5 15l.7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-            <span>Ask AI</span>
+            <span>AskSirion</span>
           </button>
           <button class="button button-primary" type="button" id="add-contract">
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>

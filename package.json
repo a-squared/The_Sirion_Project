@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js",
-    "test": "node tests/offline-smoke.cjs && node tests/frontend-integration.cjs && node tests/backend-smoke.cjs"
+    "test": "node tests/offline-smoke.cjs && node tests/revised-questions.cjs && node tests/rationale-navigation.cjs && node tests/rationale-content.cjs && node tests/frontend-integration.cjs && node tests/backend-smoke.cjs"
   },
   "engines": {
     "node": ">=20"

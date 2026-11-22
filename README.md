@@ -1,10 +1,10 @@
 # Contract workspace prototype
 
-A local procurement workspace for the assignment: Overview, Contracts Library, Team Board, and Story. The eight bundled supplier records and their terms, dates, and board states are **synthetic examples**, not verified signed agreements or actual financial outcomes. The example contract values are not annual spend or confirmed savings.
+A local procurement workspace for the assignment: Home, Contracts Library, Team Board, Rationale & Insights, and Architecture. The eight bundled supplier records and their terms, dates, and board states are **synthetic examples**, not verified signed agreements or actual financial outcomes. The example contract values are not annual spend or confirmed savings.
 
 ## Preview without a server
 
-Open `public/index.html` in a browser. The four example questions, contract library, board, and Story work in this local preview; changes are stored in the browser. You can add a text file as a source. PDF extraction, general model-generated answers, and email delivery require the local server and appropriate configuration.
+Open `public/index.html` in a browser. The 14 sample questions, contract library, board, Rationale & Insights, and Architecture work in this local preview; changes are stored in the browser. You can add a text file as a source. PDF extraction, general model-generated answers, and email delivery require the local server and appropriate configuration.
 
 Email addresses added in the file preview are stored only in that browser's file-origin storage. They are not delivered and do not transfer automatically to the server-backed app. Use fictional data only in the preview.
 
@@ -22,11 +22,11 @@ Run `npm test` for the offline UI, mocked integration, and in-process backend ch
 
 Local changes and uploaded files are stored in `.data/`, which is excluded from Git. The server creates private directories and files with permissions `0700` and `0600` respectively. PDF text extraction requires `pdftotext`; PDFs without machine-readable text need OCR before upload. UTF-8 text uploads are also supported.
 
-## AI answers
+## AskSirion answers
 
-For real model-generated answers, provide `OPENAI_API_KEY` in the server's environment and restart it. The optional `OPENAI_MODEL` variable defaults to `gpt-4.1-mini`. Without a key, the application reports that AI is not configured. It also offers four explicitly labelled, fixed demonstration answers for the unchanged built-in fixtures and a keyword document search; those demonstrations are not model-generated answers. Arbitrary questions and uploaded documents require a configured model for AI answers.
+For real model-generated answers, provide `OPENAI_API_KEY` in the server's environment and restart it. The optional `OPENAI_MODEL` variable defaults to `gpt-4.1-mini`. Without a key, the application offers labelled demonstration answers for unchanged sample records, summaries calculated from recorded data, and keyword document search; these are not model-generated answers. Arbitrary questions and uploaded documents require a configured model for AI answers.
 
-Each question and the selected source excerpts are sent to OpenAI. Use only content you are authorized to send. The server asks the model to treat source instructions as untrusted, and returns only source IDs and verbatim excerpts that are present in the supplied text. These checks do not prove that a model's interpretation is correct. Human review remains important, especially for dates, financial comparisons, and legal terms.
+With a model configured, each non-demo question and selected agreement and supporting-record excerpts are sent to OpenAI. Use only content you are authorized to send. The server asks the model to treat source instructions as untrusted, and returns only source IDs and verbatim excerpts that are present in the supplied text. These checks do not prove that a model's interpretation is correct. Human review remains important, especially for dates, financial comparisons, and legal terms.
 
 ## Sample-only email
 

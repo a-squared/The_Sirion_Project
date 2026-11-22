@@ -217,7 +217,7 @@ function validateSources(value) {
 
 async function askModel(input) {
   if (!modelConfigured()) {
-    throw new HttpError(503, "Ask AI is not configured. Set OPENAI_API_KEY before starting the server.");
+    throw new HttpError(503, "AskSirion's AI model is not configured. Set OPENAI_API_KEY before starting the server.");
   }
   const question = typeof input.question === "string" ? input.question.trim() : "";
   if (!question || question.length > 2000) {
